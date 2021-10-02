@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://sprites/dir_arrow.png" type="Texture" id=1]
+
+[node name="TravelDirection" type="Position2D"]
+
+[node name="Sprite" type="Sprite" parent="."]
+rotation = 1.5708
+texture = ExtResource( 1 )
+offset = Vector2( 0, -16 )
