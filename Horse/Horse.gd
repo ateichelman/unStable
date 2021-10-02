@@ -1,15 +1,19 @@
 extends KinematicBody2D
 
 export (float) var accelRate = 150.0
-export (float) var deccelRate = 100.0
+export (float) var deccelRate = 50.0
+# used for turn rates based on speed
 export (int) var speedPerTier = 100
-export (float) var baseTurnRate = 1.5
+export (float) var baseTurnRate = 2
 export (float) var turnRateMod = 0.75
+export (int) var driftThreshold = 200
+export (int) var brakeMod = 2
+export (int) var driftTurnMod = 5
 
 var _driftFlag = false
 var _turningFlag = false
-var _speedSetting = 0
-var _curMaxSpeed = 0
+var _speedDir = 0
+var _maxSpeed = 350.0
 var _curSpeed = 0.0
 var _rotationDirection = 0
 
@@ -28,16 +32,19 @@ func _ready():
 	Events.connect("horse_speed_changed",self,"_on_speed_shift")
 
 func _process(delta):
-	if _curSpeed > _curMaxSpeed:
+	if _speedDir < 0:
+		if !_driftFlag && _curSpeed >= driftThreshold:
+			_toggle_drift()
+		# Deccelerate
+		_curSpeed = clamp((_curSpeed - (deccelRate * brakeMod * delta)),0.0, _maxSpeed)
+	if _speedDir > 0:
+		# Accelerate
+		_curSpeed = clamp((_curSpeed + (accelRate * delta)),0.0, _maxSpeed)
+	if _speedDir == 0:
 		if !_driftFlag:
 			_toggle_drift()
 		# Deccelerate
-		_curSpeed = clamp((_curSpeed - (deccelRate * delta)),_curMaxSpeed, 20000.0)
-	if _curSpeed <= _curMaxSpeed:
-		if _driftFlag:
-			_toggle_drift()
-		# Accelerate
-		_curSpeed = clamp((_curSpeed + (accelRate * delta)),0.0, _curMaxSpeed)
+		_curSpeed = clamp((_curSpeed - (deccelRate * delta)),0.0, _maxSpeed)
 	# update rotation if drifting
 	var rotationMod = baseTurnRate * (pow(turnRateMod, floor(_curSpeed/speedPerTier) + 1)) * delta * _rotationDirection
 	
@@ -49,11 +56,23 @@ func _process(delta):
 	
 	if _driftFlag:
 		# Have travelDirection steadily return to horse direction on its own.
-		travelDirection.global_rotation = lerp_angle( travelDirection.global_rotation, global_rotation, ((pow(turnRateMod, floor(_curSpeed/speedPerTier) + 1)) * delta))
+		travelDirection.global_rotation = lerp_angle( travelDirection.global_rotation, global_rotation, ((pow(turnRateMod, floor(_curSpeed/speedPerTier) + 1)) * driftTurnMod * delta))
+
+		
+	if _driftFlag && !_turningFlag:
+		var travelNorm = get_travel_vec().normalized()
+		var horseNorm = Vector2(cos(global_rotation), sin(global_rotation))
+		var dotProd = travelNorm.x * horseNorm.x + travelNorm.y * horseNorm.y
+		var dirDiff = acos(dotProd)
+		Events.emit_signal("new_acos",dirDiff)
+		if dirDiff < 0.07:
+			_toggle_drift()
+		
 	
 	global_rotation = wrapf(global_rotation + rotationMod, 0-179.9, 179.9)
 	var velocity = get_travel_vec().normalized() * (_curSpeed * delta)
 	move_and_collide(velocity)
+	Events.emit_signal("new_speed",_curSpeed)
 
 #func _do_drift_calculations(delta):
 #	# how fast we'll be turning

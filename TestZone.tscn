@@ -1,7 +1,43 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://sprites/test_track.png" type="Texture" id=1]
 [ext_resource path="res://Horse/Horse.tscn" type="PackedScene" id=2]
+
+[sub_resource type="GDScript" id=1]
+script/source = "extends Label
+
+# For debuging ACOS issues...
+
+var _currentAcos = 0
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	Events.connect(\"new_acos\",self,\"on_acos_change\")
+
+func _process(delta):
+	text = \"Current ACOS: \" + str(_currentAcos)
+
+func on_acos_change(val):
+	_currentAcos = val
+"
+
+[sub_resource type="GDScript" id=2]
+script/source = "extends Label
+
+# For debugging Speed
+
+var _currentSpeed = 0
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	Events.connect(\"new_speed\",self,\"on_speed_change\")
+
+func _process(delta):
+	text = \"Current Speed: \" + str(_currentSpeed)
+
+func on_speed_change(val):
+	_currentSpeed = val
+"
 
 [node name="TestZone" type="Node2D"]
 
@@ -9,3 +45,35 @@
 texture = ExtResource( 1 )
 
 [node name="Horse" parent="." instance=ExtResource( 2 )]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="DebugZone" type="ColorRect" parent="HUD"]
+margin_right = 219.0
+margin_bottom = 110.0
+color = Color( 0.0470588, 0.313726, 0.654902, 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LableAcos" type="Label" parent="HUD"]
+margin_left = 17.2305
+margin_top = 59.9323
+margin_right = 111.231
+margin_bottom = 73.9323
+text = "Current ACOS: "
+script = SubResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="LableSpeed" type="Label" parent="HUD"]
+margin_left = 17.2305
+margin_top = 22.4746
+margin_right = 111.231
+margin_bottom = 36.4746
+text = "Current Speed:"
+script = SubResource( 2 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
